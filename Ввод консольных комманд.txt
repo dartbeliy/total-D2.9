@@ -1,0 +1,93 @@
+cd portal
+python manage.py shell
+from news_portal.models import *
+
+# Создание 2-х пользователей
+user1 = User.objects.create_user('Диванный политик')
+user2 = User.objects.create_user('Геймер')
+
+# Создание 2-х объектов модели Author, связанные с пользователями.
+Author.objects.create(authorUser=user1)
+Author.objects.create(authorUser=user2)
+
+# Добавление 4 категорий в модель Category.
+Category.objects.create(name='Политика')
+Category.objects.create(name='Космос')
+Category.objects.create(name='Экономика')
+Category.objects.create(name='IT-технологии')
+
+# Добавление 2 статьи и 1 новости.
+author1 = Author.objects.get(id=1)
+Post.objects.create(author=author1, categoryType='AR', title='Политика в моём понимании', text='Денег нет, но вы держитесь...')
+Post.objects.create(author=author1, categoryType='AR', title='МРОТ увеличили на 0.5%', text='Ни в чём себе не отказываем...')
+author2 = Author.objects.get(id=2)
+Post.objects.create(author=author2, categoryType='NW', title='Counter-Strike, играем в жизнь!', text='Вышла новая игра Virtus-Antiterror...')
+
+# Присвоить им категории (как минимум в одной статье/новости должно быть не меньше 2 категорий).
+Post.objects.get(id=1).postCategory.add(Category.objects.get(id=1))
+Post.objects.get(id=1).postCategory.add(Category.objects.get(id=3))
+Post.objects.get(id=2).postCategory.add(Category.objects.get(id=1))
+Post.objects.get(id=2).postCategory.add(Category.objects.get(id=3))
+Post.objects.get(id=3).postCategory.add(Category.objects.get(id=1))
+Post.objects.get(id=3).postCategory.add(Category.objects.get(id=4))
+
+# Создать как минимум 4 комментария к разным объектам модели Post (в каждом объекте должен быть как минимум один комментарий).
+Comment.objects.create(commentPost=Post.objects.get(id=1), commentUser=Author.objects.get(id=1).authorUser, text='Если у тебя ничего нет, то тебе и терять нечего!')
+Comment.objects.create(commentPost=Post.objects.get(id=1), commentUser=Author.objects.get(id=2).authorUser, text='Нужно научиться понемногу откладывать деньги!')
+Comment.objects.create(commentPost=Post.objects.get(id=2), commentUser=Author.objects.get(id=2).authorUser, text='Буду больше инвестировать в "Газпром"!')
+Comment.objects.create(commentPost=Post.objects.get(id=3), commentUser=Author.objects.get(id=2).authorUser, text='Набираем команду лучших геймеров!')
+Comment.objects.create(commentPost=Post.objects.get(id=3), commentUser=Author.objects.get(id=1).authorUser, text='Куда катится этот мир??? Срочно строю бункер!!!')
+
+# Применяя функции like() и dislike() к статьям/новостям и комментариям, скорректировать рейтинги этих объектов.
+Post.objects.get(id=1).like()
+Post.objects.get(id=1).like()
+Post.objects.get(id=1).like()
+
+Post.objects.get(id=2).like()
+Post.objects.get(id=2).like()
+Post.objects.get(id=2).like()
+
+Post.objects.get(id=2).dislike()
+
+Comment.objects.get(id=1).like()
+Comment.objects.get(id=1).like()
+Comment.objects.get(id=1).like()
+Comment.objects.get(id=1).like()
+
+Comment.objects.get(id=3).like()
+Comment.objects.get(id=3).like()
+Comment.objects.get(id=3).like()
+
+# Обновить рейтинги пользователей.
+author1.update_rating()
+author2.update_rating()
+
+# Вывести username и рейтинг лучшего пользователя (применяя сортировку и возвращая поля первого объекта).
+best = Author.objects.order_by('-ratingAuthor')[:1]
+
+for i in best:
+ f'Лучший пользователь:'
+ f'       username: {i.authorUser.username}'
+ f'       рейтинг: {i.ratingAuthor}'
+
+
+# Вывести дату добавления, username автора, рейтинг, заголовок и превью лучшей статьи, основываясь на лайках/дислайках к этой статье.
+bestArticle = Post.objects.order_by('-rating')[:1]
+
+for i in bestArticle:
+ f'Лучшая статья:'
+ f'     Дата добавления: {str(i.dateCreation)[0:19]}'
+ f'     username автора: {i.author.authorUser}'
+ f'     рейтинг: {i.rating}'
+ f'     заголовок: {i.title}'
+ f'     превью: {i.preview()}'
+
+
+# Вывести все комментарии (дата, пользователь, рейтинг, текст) к этой статье.
+commentsBest = Comment.objects.filter(commentPost=Post.objects.order_by('-rating')[:1])
+
+for i in commentsBest:
+ f'дата: {str(i.dateCreation)[0:19]}'
+ f'пользователь: {i.commentUser}'
+ f'рейтинг: {i.rating}'
+ f'текст: {i.text}'
